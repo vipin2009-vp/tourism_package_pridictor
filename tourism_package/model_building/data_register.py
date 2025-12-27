@@ -7,7 +7,7 @@ repo_id = "Vipin0287/tourism-package-repo"
 repo_type = "dataset"
 
 # Initialize API client
-api = HfApi(token=os.getenv("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"))
+api = HfApi(token=os.getenv("HF_TOKEN"))
 
 # Step 1: Check if the space exists
 try:
