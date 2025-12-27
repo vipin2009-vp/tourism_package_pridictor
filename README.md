@@ -1,1 +1,1 @@
-# tourism_package_pridictor
+# tourism_package_predictor
