@@ -12,16 +12,17 @@ import joblib
 # for creating a folder
 import os
 # for hugging face space authentication to upload files
-from huggingface_hub import login, HfApi, create_repo
-from huggingface_hub.utils import RepositoryNotFoundError, HfHubHTTPError
+from huggingface_hub import HfApi, create_repo
+from huggingface_hub.utils import RepositoryNotFoundError
 import mlflow
+import numpy as np   # ✅ added for RMSE calculation
 
 mlflow.set_tracking_uri("http://localhost:5000")
 mlflow.set_experiment("mlops-training-tourism")
 
 api = HfApi()
 
-
+# Paths to training and test data
 Xtrain_path = "hf://datasets/Vipin0287/tourism-package-repo/Xtrain.csv"
 Xtest_path = "hf://datasets/Vipin0287/tourism-package-repo/Xtest.csv"
 ytrain_path = "hf://datasets/Vipin0287/tourism-package-repo/ytrain.csv"
@@ -29,9 +30,8 @@ ytest_path = "hf://datasets/Vipin0287/tourism-package-repo/ytest.csv"
 
 Xtrain = pd.read_csv(Xtrain_path)
 Xtest = pd.read_csv(Xtest_path)
-ytrain = pd.read_csv(ytrain_path)
-ytest = pd.read_csv(ytest_path)
-
+ytrain = pd.read_csv(ytrain_path).values.ravel()   # flatten to 1D
+ytest = pd.read_csv(ytest_path).values.ravel()
 
 # Define numeric and categorical features
 categorical_features = [
@@ -91,9 +91,9 @@ with mlflow.start_run():
     y_pred_train = best_model.predict(Xtrain)
     y_pred_test = best_model.predict(Xtest)
 
-    # Metrics
-    train_rmse = mean_squared_error(ytrain, y_pred_train, squared=False)
-    test_rmse = mean_squared_error(ytest, y_pred_test, squared=False)
+    # Metrics (RMSE via np.sqrt for compatibility)
+    train_rmse = np.sqrt(mean_squared_error(ytrain, y_pred_train))
+    test_rmse = np.sqrt(mean_squared_error(ytest, y_pred_test))
 
     train_mae = mean_absolute_error(ytrain, y_pred_train)
     test_mae = mean_absolute_error(ytest, y_pred_test)
@@ -123,7 +123,6 @@ with mlflow.start_run():
     repo_id = "Vipin0287/tourism_package_model"
     repo_type = "model"
 
-    # Step 1: Check if the space exists
     try:
         api.repo_info(repo_id=repo_id, repo_type=repo_type)
         print(f"Space '{repo_id}' already exists. Using it.")
@@ -132,7 +131,6 @@ with mlflow.start_run():
         create_repo(repo_id=repo_id, repo_type=repo_type, private=False)
         print(f"Space '{repo_id}' created.")
 
-    # create_repo("churn-model", repo_type="model", private=False)
     api.upload_file(
         path_or_fileobj="best_tourism_package_model_v1.joblib",
         path_in_repo="best_tourism_package_model_v1.joblib",
